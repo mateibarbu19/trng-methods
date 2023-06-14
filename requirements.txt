@@ -1,0 +1,11 @@
+requests
+lxml
+beautifulsoup4
+
+scipy
+numpy
+
+matplotlib
+librosa
+
+pydub

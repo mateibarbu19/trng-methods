@@ -1,0 +1,11 @@
+# Data folder
+audio/
+# Results folder
+out/
+
+# Results type
+*.wav
+*.png
+
+# Python cache
+__pycache__/
