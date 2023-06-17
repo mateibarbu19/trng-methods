@@ -1,0 +1,18 @@
+# Audio, plots and tests
+audio
+out
+
+# Git related files
+.git
+.gitignore
+
+# Python related files
+src
+
+# Scripts
+tests
+run.sh
+
+# Project docs
+*.md
+LICENSE

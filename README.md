@@ -21,7 +21,7 @@ $ git https://github.com/mateibarbu19/trng-methods
 $ cd trng-methods
 $ ./start.sh
 $ docker attach test_trng
-(.venv) tester@test_trng:~/app$ python3 src/vlf.py --download --duration 5 --plot
+(.venv) tester@test_trng:~/app$ ./tests/test.sh
 ```
 
 ### Troubleshooting
@@ -57,8 +57,8 @@ Here are some steps you can take to resolve this issue on a Linux host:
     ```
 
     Replace `0bda` and `2838` with the vendor and product ID of your device. The
-    `MODE="0666"` sets the permissions so that all users can read from and write
-    to the device.
+    `MODE=:"0666"` sets the permissions so that all users can read from and
+    write to the device.
 
 3. Reload the udev rules with the following command:
 

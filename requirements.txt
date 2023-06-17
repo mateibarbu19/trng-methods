@@ -1,11 +1,15 @@
+# Web related packages
 requests
 lxml
 beautifulsoup4
 
+# Processing related packages
 scipy
 numpy
 
+# Visualization related packages
 matplotlib
 librosa
 
+# Audio related packages
 pydub

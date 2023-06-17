@@ -1,9 +1,17 @@
+from enum import Flag, auto
+
+import os
+from pathlib import Path
+
+# Wav files
 import wave
 from scipy.io import wavfile
 
+# Maths
 import numpy as np
 from scipy.signal import spectrogram
 
+# Plots and images
 from matplotlib import style
 import matplotlib.pyplot as plt
 
@@ -15,6 +23,57 @@ from PIL import Image
 # List of colors to use for plots.
 color_list = ['skyblue', 'orange', 'green', 'red',
               'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+
+
+class plot_type(Flag):
+    NONE = auto()
+    WAVES = auto()
+    DISTRIBUTION = auto()
+    SPECTROGRAM = auto()
+    BITMAP = auto()
+
+    def execute(self, data_dir, results_dir, orig_data_dir=None):
+        # Skip if no plots are requested
+        if self == plot_type.NONE:
+            return
+
+        # Iterate through all wav files in the directory
+        for file in os.listdir(data_dir):
+            # skip if it isn't a wav file
+            if not file.endswith(".wav"):
+                continue
+
+            name = Path(file).stem
+            file = os.path.join(data_dir, file)
+
+            # Set the base directory for the results of a file
+            base = os.path.join(results_dir, name)
+            os.makedirs(base, exist_ok=True)
+
+            if self & plot_type.WAVES:
+                waves = [file]
+                orig_file = os.path.join(orig_data_dir, f'{file}.wav')
+                if os.path.isfile(orig_file):
+                    waves = [orig_file] + waves
+
+                # Plot the waves
+                img = os.path.join(base, f'waves.png')
+                plot_waves(waves, img)
+
+            if self & plot_type.SPECTROGRAM:
+                # Plot the spectrogram
+                img = os.path.join(base, f'spec.png')
+                plot_spectrogram(file, img)
+
+            if self & plot_type.DISTRIBUTION:
+                # Plot the distribution
+                img = os.path.join(base, f'dist.png')
+                plot_distribution(file, img)
+
+            if self & plot_type.BITMAP:
+                # Plot the bitmap
+                img = os.path.join(base, f'bitmap.png')
+                audio_to_bitmap(file, img)
 
 
 def plot_spectrogram(audio_file, output, title=None):
@@ -125,8 +184,7 @@ def plot_distribution(audio_file, output, description=None):
     style.use('default')
 
 
-# TODO legend
-def plot_waves(audio_files, output, description=None):
+def plot_waves(audio_files, output, title=None, labels=None):
     # Create a new figure with a decently large size (in inches)
     plt.figure(figsize=(12, 6))
 
@@ -136,6 +194,10 @@ def plot_waves(audio_files, output, description=None):
             f"Please add more colors. Number of files ({len(audio_files)}) exceeds number of colors ({len(color_list)}).")
         return
 
+    # Assert that labels and audio_files have the same length
+    assert labels is None or len(audio_files) == len(
+        labels), "The number of labels must be the same as the number of audio files."
+
     # Load and plot each file
     for i, filename in enumerate(audio_files):
         # Load the audio file
@@ -144,14 +206,20 @@ def plot_waves(audio_files, output, description=None):
         # Generate a time axis
         t = np.arange(len(y)) / sr
 
-        # Plot the wave
-        plt.plot(t, y, color=color_list[i], label=f'Wave of {filename}')
+        # Get the label
+        if labels is not None:
+            legend_label = labels[i]
+        else:
+            legend_label = f'Wave of {filename}'
 
-    if description is None:
-        description = 'Wave of ' + ' '.join(audio_files)
+        # Plot the wave
+        plt.plot(t, y, color=color_list[i], label=legend_label)
+
+    if title is None:
+        title = 'Wave of ' + ' '.join(audio_files)
 
     # Plot the wave
-    plt.title(description, fontsize=16)
+    plt.title(title, fontsize=16)
     plt.xlabel("Time (s)", fontsize=14)
     plt.ylabel("Amplitude", fontsize=14)
     plt.legend(loc='upper right')
