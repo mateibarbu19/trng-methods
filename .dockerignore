@@ -1,4 +1,4 @@
-# Audio, plots and tests
+# Audio and results
 audio
 out
 
@@ -6,12 +6,10 @@ out
 .git
 .gitignore
 
-# Python related files
+# Sources and tests
 src
-
-# Scripts
 tests
-run.sh
+start.sh
 
 # Project docs
 *.md

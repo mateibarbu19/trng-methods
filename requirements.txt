@@ -10,6 +10,7 @@ numpy
 # Visualization related packages
 matplotlib
 librosa
+seaborn
 
 # Audio related packages
 pydub

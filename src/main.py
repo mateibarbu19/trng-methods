@@ -10,8 +10,8 @@ import operator
 from entropy_sources.vlf import vlf_source
 
 # Transformations
-from transformations.uniformize import Uniformize
-from transformations.specterfilter import SpecterFilterAverage, SpecterFilterMedian, SpecterFilterWiener
+from transformations.uniformize import UniformizeSignal, UniformizeSpectrum
+from transformations.filter import FilterSpectrumAverage, FilterSpectrumMedian, FilterSpectrumWiener
 
 # Plots
 from plots import plot_type
@@ -127,14 +127,16 @@ def main():
 
         # Select the constructor for the transformation
         match name:
-            case 'uniformize':
-                constructor = Uniformize
-            case 'spec-filter-avg':
-                constructor = SpecterFilterAverage
-            case 'spec-filter-med':
-                constructor = SpecterFilterMedian
-            case 'spec-filter-wiener':
-                constructor = SpecterFilterWiener
+            case 'uniformize-signal':
+                constructor = UniformizeSignal
+            case 'uniformize-spectrum':
+                constructor = UniformizeSpectrum
+            case 'filter-spectrum-average':
+                constructor = FilterSpectrumAverage
+            case 'filter-spectrum-median':
+                constructor = FilterSpectrumMedian
+            case 'filter-spectrum-wiener':
+                constructor = FilterSpectrumWiener
             case _:
                 raise Exception(f'Unknown transformation: {name}')
 

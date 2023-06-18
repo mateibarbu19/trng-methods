@@ -6,6 +6,7 @@ out/
 # Results type
 *.wav
 *.png
+*.raw
 
 # Python cache
 __pycache__/

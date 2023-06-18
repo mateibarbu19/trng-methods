@@ -4,7 +4,7 @@ import numpy as np
 from scipy.signal import convolve, medfilt
 
 
-class SpecterFilterAverage(Transformation):
+class FilterSpectrumAverage(Transformation):
     def __init__(self, window_size=50, **kwargs):
         super().__init__(**kwargs)
         assert window_size % 2 == 0, "Window size must be even"
@@ -33,7 +33,7 @@ class SpecterFilterAverage(Transformation):
         return smoothed_data
 
 
-class SpecterFilterMedian(Transformation):
+class FilterSpectrumMedian(Transformation):
     def __init__(self, window_size=51, **kwargs):
         super().__init__(**kwargs)
         assert window_size % 2 == 1, "Window size must be odd"
@@ -61,7 +61,7 @@ class SpecterFilterMedian(Transformation):
         return filtered_data
 
 
-class SpecterFilterWiener(Transformation):
+class FilterSpectrumWiener(Transformation):
     def __init__(self, proc=0.1, **kwargs):
         super().__init__(**kwargs)
         self.proc = proc
