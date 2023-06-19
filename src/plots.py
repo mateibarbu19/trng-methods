@@ -40,22 +40,22 @@ class plot_type(Flag):
     PHASE_DISTRIBUTION = auto()
     BITMAP = auto()
 
-    def execute(self, data_dir, results_dir):
+    def execute(self, audio_dir, eval_dir):
         # Skip if no plots are requested
         if self == plot_type.NONE:
             return
 
         # Iterate through all wav files in the directory
-        for file in os.listdir(data_dir):
+        for file in os.listdir(audio_dir):
             # skip if it isn't a wav file
             if not file.endswith(".wav"):
                 continue
 
             name = Path(file).stem
-            file = os.path.join(data_dir, file)
+            file = os.path.join(audio_dir, file)
 
             # Set the base directory for the results of a file
-            base = os.path.join(results_dir, name)
+            base = os.path.join(eval_dir, name)
             os.makedirs(base, exist_ok=True)
 
             if self & plot_type.WAVE:
@@ -144,8 +144,6 @@ def plot_waves(audio_files, output, title=None, labels=None):
 def plot_distribution(audio_file, output, description=None):
     # Open the WAV file
     with wave.open(audio_file, 'rb') as wav_file:
-        # Ensure this is a 16-bit WAV file
-        assert wav_file.getsampwidth() == 2, "This function supports only 16-bit audio."
         # Read the frames from the WAV file
         frames = wav_file.readframes(wav_file.getnframes())
 
@@ -159,8 +157,12 @@ def plot_distribution(audio_file, output, description=None):
     plt.figure(figsize=(10, 6))
 
     # Plot a histogram of the data values with a higher number of bins and a subtle color
-    seaborn.histplot(data, bins=100, color='skyblue',
-                     edgecolor='black', kde=True)
+    ax = seaborn.histplot(data, bins=100, color='skyblue',
+                          edgecolor='black', kde=True)
+    ax.lines[0].set_color('xkcd:pumpkin orange')
+    ax.lines[0].set_linewidth(2)
+
+    # Label the axes and provide a title
     plt.title(description, fontsize=16)
     plt.xlabel("Amplitude", fontsize=14)
     plt.ylabel("Frequency", fontsize=14)
@@ -183,9 +185,6 @@ def plot_spectrogram(audio_file, output, title=None):
     # Extract Raw Audio from Wav File
     raw_signal = file.readframes(-1)
     raw_signal = np.frombuffer(raw_signal, np.int16)
-
-    # If Stereo
-    assert file.getnchannels() == 1, 'Just mono files'
 
     # Compute the spectrogram
     spectrogram(raw_signal, file.getframerate())
@@ -238,6 +237,8 @@ def plot_spectrum(audio_file, output):
 
     # Plot the spectrum
     plt.plot(freq, np.abs(spectrum))
+
+    # Label the axes and provide a title
     plt.title('Spectrum of the Signal', fontsize=16)
     plt.xlabel('Frequency (Hz)', fontsize=14)
     plt.ylabel('Magnitude', fontsize=14)
@@ -264,7 +265,12 @@ def plot_magnitude_distribution(audio_file, output):
     plt.figure(figsize=(10, 6))
 
     # Plot the distribution of magnitudes
-    seaborn.histplot(magnitudes, bins=100, color='skyblue', kde=True)
+    ax = seaborn.histplot(magnitudes, bins=100, color='skyblue',
+                          kde=True)
+    ax.lines[0].set_color('xkcd:pumpkin orange')
+    ax.lines[0].set_linewidth(2)
+
+    # Label the axes and provide a title
     plt.title('Distribution of Magnitudes in Spectrum', fontsize=16)
     plt.xlabel('Magnitude', fontsize=14)
     plt.ylabel('Density', fontsize=14)
@@ -291,8 +297,12 @@ def plot_phase_distribution(audio_file, output):
     plt.figure(figsize=(10, 6))
 
     # Plot the distribution of phases
-    seaborn.histplot(phases, bins=100, color='skyblue',
-                     edgecolor='black', kde=True)
+    ax = seaborn.histplot(phases, bins=100, color='skyblue',
+                          edgecolor='black', kde=True)
+    ax.lines[0].set_color('xkcd:pumpkin orange')
+    ax.lines[0].set_linewidth(2)
+
+    # Label the axes and provide a title
     plt.title('Distribution of Phases in Spectrum', fontsize=16)
     plt.xlabel('Phase (radians)', fontsize=14)
     plt.ylabel('Density', fontsize=14)
@@ -317,10 +327,6 @@ def audio_to_bitmap(audio_file, output):
     # Reshape the data into a square format
     length = data.shape[0]
     dim = int(np.sqrt(length)) + 1
-
-    # If the data is stereo, take the mean
-    if len(data.shape) > 1:
-        data = np.mean(data, axis=1)
 
     # Pad the data if it cannot be reshaped into a perfect square
     data = np.pad(data, (0, dim*dim - length), 'constant', constant_values=255)

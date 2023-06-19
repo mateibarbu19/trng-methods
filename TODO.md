@@ -9,6 +9,8 @@ Programming:
 
 Methods:
 - correcting bias + correlation
+- resampling of ogg
+- fm record
 
 Miscellaneous:
 - extract most entropic data from low entropy file
