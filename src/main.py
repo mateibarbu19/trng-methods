@@ -1,4 +1,5 @@
 import argparse
+from argparse import RawTextHelpFormatter
 
 from os.path import join
 from pathlib import Path
@@ -15,8 +16,10 @@ from operations.operation import operation
 from operations.uniformize import uniformize_signal
 from operations.uniformize import uniformize_spectrum
 from operations.filter import filter_spectrum_average
-from operations.filter import filter_spectrum_median
 from operations.filter import filter_spectrum_gaussian
+from operations.filter import filter_spectrum_median
+from operations.filter import filter_spectrum_notch
+from operations.outlier import winsorize_spectrum
 
 # Plots
 from plots import plot_type
@@ -25,6 +28,21 @@ DEFAULT_DURATION = 5
 DEFAULT_AUDIO_DIR = 'audio'
 DEFAULT_EVAL_DIR = 'out'
 DEFAULT_SOURCE_DIR = 'sources'
+
+supported_sources = {
+    'vlf': vlf_source,
+    'fm': fm_source
+}
+
+supported_operations = {
+    'uniformize_signal': uniformize_signal,
+    'uniformize_spectrum': uniformize_spectrum,
+    'filter_spectrum_average': filter_spectrum_average,
+    'filter_spectrum_gaussian': filter_spectrum_gaussian,
+    'filter_spectrum_median': filter_spectrum_median,
+    'filter_spectrum_notch': filter_spectrum_notch,
+    'winsorize_spectrum': winsorize_spectrum,
+}
 
 
 def make_plot_types(args) -> plot_type:
@@ -56,6 +74,8 @@ def get_value(value: str):
         return tuple(map(get_value, values))
     elif value.startswith('{') and value.endswith('}'):
         raise NotImplementedError
+    else:
+        return value
 
 
 def make_source(args):
@@ -72,14 +92,11 @@ def make_source(args):
         # Add the key-value pair to the kwargs
         kwargs[key] = get_value(value)
 
-    match name + '_source':
-        case vlf_source.__name__:
-            constructor = vlf_source
-        case fm_source.__name__:
-            constructor = fm_source
-            pass
-        case _:
-            raise Exception(f'Unknown source: {name}')
+    # Get the constructor for the source
+    if name in supported_sources:
+        constructor = supported_sources[name]
+    else:
+        raise Exception(f'Unknown source: {name}')
 
     # Extract working directories
     if args.audio_dir is None:
@@ -130,20 +147,11 @@ def make_operations(args, source) -> list[operation]:
             # Add the key-value pair to the current kwargs
             op_kwargs[key] = get_value(value)
 
-        # Select the constructor for the operation
-        match name:
-            case 'uniformize_signal':
-                constructor = uniformize_signal
-            case 'uniformize_spectrum':
-                constructor = uniformize_spectrum
-            case 'filter_spectrum_average':
-                constructor = filter_spectrum_average
-            case 'filter_spectrum_median':
-                constructor = filter_spectrum_median
-            case 'filter_spectrum_gaussian':
-                constructor = filter_spectrum_gaussian
-            case _:
-                raise Exception(f'Unknown operation: {name}')
+        # Get the constructor for the operation
+        if name in supported_operations:
+            constructor = supported_operations[name]
+        else:
+            raise Exception(f'Unknown operation: {name}')
 
         # Add the constructed operation to the list
         operations.append(constructor(**op_kwargs))
@@ -183,9 +191,12 @@ def compute(args):
 
 
 def add_arguments(parser: argparse.ArgumentParser):
+    available_sources = map(lambda k: f'- {k}', supported_sources.keys())
+    available_sources = '\n\t'.join(available_sources)
     parser.add_argument('--source', action='store',
-                        type=str, default=vlf_source.__name__.split('_')[0],
-                        help='a souce of choice for the data')
+                        type=str, default=available_sources[0],
+                        help='a souce of choice for the data, available sources:\n\t' +
+                        available_sources)
 
     parser.add_argument('--acquire', action='store_true',
                         help='acquire the data from the source')
@@ -197,21 +208,27 @@ def add_arguments(parser: argparse.ArgumentParser):
     parser.add_argument('--audio_dir', action='store', type=str,
                         help='directory to store the audio files')
 
-    # TODO description
-    parser.add_argument('--operations', action='store', type=str)
+    available_operations = map(lambda k: f'- {k}', supported_operations.keys())
+    available_operations = '\n\t'.join(available_operations)
+    parser.add_argument('--operations', action='store', type=str,
+                        help='a sequence of operations to be applied to the data\n' +
+                        'available operations which can be combined with can be combined with plus (+):\n\t' +
+                        available_operations)
 
     parser.add_argument('--name', action='store', type=str, default='',
-                        help='the name of your the method described by the operations')
+                        help='the name of the method described by the sequence of operations')
 
     parser.add_argument('--block_size', action='store', type=int,
                         help='the dimension on which the data is processed, block by block')
 
-    available_plots = list(
-        map(lambda x: x.lower(), plot_type.__members__.keys()))
+    available_plots = map(lambda x: '- ' + x.lower(),
+                          plot_type.__members__.keys())
+    available_plots = '\n\t'.join(available_plots)
     parser.add_argument('--plot_types', action='store', type=str,
                         default=plot_type.NONE.name.lower(),
-                        help='plot intermediate data, available plots: ' +
-                        ', '.join(available_plots) + '; can be combined with plus (+)')
+                        help='plot intermediate data' +
+                        '\navailable plots which can be combined with can be combined with plus (+):\n\t' +
+                        available_plots)
 
     parser.add_argument('--evaluation_dir', dest='eval_dir', action='store', type=str,
                         help='root directory to store the plots and tests')
@@ -219,7 +236,18 @@ def add_arguments(parser: argparse.ArgumentParser):
 
 def main():
     # Define command line arguments
-    parser = argparse.ArgumentParser(description='Radio Noise based TRNG.')
+    parser = argparse.ArgumentParser(description='Radio Noise based TRNG.\n\n' +
+                                     'The program can be used to acquire data from a source, ' +
+                                     'apply operations on the data, plot and evaluate the results.\n\n' +
+                                     'The program can be used in two modes:\n' +
+                                     '1. acquire data from a source and plot the results\n' +
+                                     '2. apply operations on the data, plot and evaluate the results\n\n' +
+                                     'Each source or operation can be tweaked by using key-value pairs.\n' +
+                                     'For example the source can be tweaked by using the following command:\n\n' +
+                                     '\tpython main.py --source=fm/freq=[88M]\n\n' +
+                                     'or a operation can be tweaked by using the following command:\n\n' +
+                                     '\tpython main.py --operations=uniformize_signal/method=average\n\n',
+                                     formatter_class=RawTextHelpFormatter)
 
     add_arguments(parser)
 

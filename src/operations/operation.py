@@ -102,3 +102,13 @@ class operation(ABC):
                   for i in range(0, len(data), self.block_size)]
 
         return blocks
+
+    def normalize_and_scale(data, res_type=np.int16):
+        # Normalize the data
+        normalized_data = data / np.max(np.abs(data))
+
+        # Scale the data
+        max_val = np.iinfo(res_type).max
+        scaled_data = res_type(normalized_data * max_val)
+
+        return scaled_data

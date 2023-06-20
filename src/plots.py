@@ -10,7 +10,7 @@ from scipy.io import wavfile
 # Maths
 import numpy as np
 from scipy.signal import spectrogram
-from scipy.fftpack import fft, fftfreq
+from scipy.fftpack import rfft, rfftfreq
 
 # Plots and images
 from matplotlib import style
@@ -99,10 +99,8 @@ def plot_waves(audio_files, output, title=None, labels=None):
     plt.figure(figsize=(12, 6))
 
     # Check if more files than colors available
-    if len(audio_files) > len(color_list):
-        print(
-            f"Please add more colors. Number of files ({len(audio_files)}) exceeds number of colors ({len(color_list)}).")
-        return
+    assert len(audio_files) > len(color_list), f'Please add more colors. ' + \
+        f'Number of files({len(audio_files)}) exceeds number of colors({len(color_list)}).'
 
     # Assert that labels and audio_files have the same length
     assert labels is None or len(audio_files) == len(
@@ -227,10 +225,12 @@ def plot_spectrum(audio_file, output):
     sample_rate, data = wavfile.read(audio_file)
 
     # Take the Fourier transform
-    spectrum = fft(data)
+    spectrum = rfft(data)
+
+    indices = np.where(np.abs(spectrum) > 1e7)
 
     # Calculate the frequencies for the spectrum
-    freq = fftfreq(len(spectrum), 1/sample_rate)
+    freq = rfftfreq(len(spectrum), 1/sample_rate)
 
     # Create a new figure with a decently large size (in inches)
     plt.figure(figsize=(10, 6))
@@ -258,7 +258,7 @@ def plot_magnitude_distribution(audio_file, output):
     _, data = wavfile.read(audio_file)
 
     # Take the Fourier transform
-    spectrum = fft(data)
+    spectrum = rfft(data)
     magnitudes = np.abs(spectrum)
 
     # Create a new figure with a decently large size (in inches)
@@ -290,7 +290,7 @@ def plot_phase_distribution(audio_file, output):
     _, data = wavfile.read(audio_file)
 
     # Take the Fourier transform
-    spectrum = fft(data)
+    spectrum = rfft(data)
     phases = np.angle(spectrum)
 
     # Create a new figure with a decently large size (in inches)

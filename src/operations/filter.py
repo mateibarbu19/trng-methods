@@ -1,39 +1,47 @@
 from operations.operation import operation
+from abc import abstractmethod
 
 import numpy as np
 from scipy.signal import convolve, medfilt
+from scipy.signal import iirnotch, lfilter
 from scipy.stats import norm
 from scipy.fft import rfft, irfft
 
 
-class filter_spectrum_linear(operation):
-    def __init__(self, kernel=None, **kwargs):
-        super().__init__(**kwargs)
-        self.kernel = kernel
+class filter_spectrum_magnitudes(operation):
+    @abstractmethod
+    def filter_magnitudes(self, magnitudes):
+        pass
 
     def blocks_func(self, data):
         # Take FFT
         spectrum = rfft(data)
 
-        # Compute the magnitude of the spectrum
-        magnitude = np.abs(spectrum)
+        # Compute the magnitudes and phases of the spectrum
+        magnitudes = np.abs(spectrum)
+        phases = np.angle(spectrum)
 
-        # Smooth the magnitude spectrum with a moving average
-        filtered_magnitude = convolve(magnitude, self.kernel, mode='same')
+        # Filter the magnitudes
+        filtered_magnitudes = self.filter_magnitudes(magnitudes)
 
-        # Retain original phase
-        filtered_spectrum = np.multiply(
-            filtered_magnitude, np.exp(1j*np.angle(spectrum)))
+        # Retain original phases
+        filtered_spectrum = np.multiply(filtered_magnitudes, np.exp(1j*phases))
 
         # Inverse FFT
         filtered_data = np.real(irfft(filtered_spectrum))
 
         # Normalize and scale the transformed data to the range of 16-bit signed integers
-        max_val = np.iinfo(np.int16).max
-        filtered_data = np.int16(
-            filtered_data / np.max(np.abs(filtered_data)) * max_val)
+        return operation.normalize_and_scale(filtered_data)
 
-        return filtered_data
+
+class filter_spectrum_linear(filter_spectrum_magnitudes):
+    def __init__(self, kernel=None, **kwargs):
+        super().__init__(**kwargs)
+        self.kernel = kernel
+
+    def filter_magnitudes(self, magnitudes):
+        # Apply linear filter to the magnitudes of the spectrum
+        return convolve(magnitudes, self.kernel, mode='same')
 
 
 class filter_spectrum_average(filter_spectrum_linear):
@@ -65,32 +73,33 @@ class filter_spectrum_gaussian(filter_spectrum_linear):
         super().__init__(**kwargs)
 
 
-class filter_spectrum_median(operation):
+class filter_spectrum_median(filter_spectrum_magnitudes):
     def __init__(self, window_size=51, **kwargs):
         super().__init__(**kwargs)
         assert window_size % 2 == 1, "Window size must be odd"
         self.window_size = window_size
 
+    def filter_magnitudes(self, magnitudes):
+        # Apply median filter to the magnitudes spectrum
+        return medfilt(magnitudes, self.window_size)
+
+
+class filter_spectrum_notch(operation):
+    # notch_freq is the frequency to be removed
+    # Q is the quality factor - higher values mean a narrower stop-band
+    def __init__(self, notch_freq=19e3, Q=100, **kwargs):
+        super().__init__(**kwargs)
+
+        # Numerator and denominator polynomials of the IIR filter
+        n, d = iirnotch(notch_freq, Q, 44.1e3)
+
+        self.numerator = n
+        self.denominator = d
+
     def blocks_func(self, data):
-        # Take FFT
-        spectrum = rfft(data)
+        filtered_data = lfilter(
+            self.numerator,
+            self.denominator,
+            data)
 
-        # Compute the magnitude of the spectrum
-        magnitude = np.abs(spectrum)
-
-        # Apply median filter to the magnitude spectrum
-        filtered_magnitude = medfilt(magnitude, self.window_size)
-
-        # Retain original phase
-        filtered_spectrum = np.multiply(
-            filtered_magnitude, np.exp(1j*np.angle(spectrum)))
-
-        # Inverse FFT
-        filtered_data = np.real(irfft(filtered_spectrum))
-
-        # Normalize and scale the transformed data to the range of 16-bit signed integers
-        max_val = np.iinfo(np.int16).max
-        filtered_data = np.int16(
-            filtered_data / np.max(np.abs(filtered_data)) * max_val)
-
-        return filtered_data
+        return operation.normalize_and_scale(filtered_data)

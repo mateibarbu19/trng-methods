@@ -75,8 +75,8 @@ class vlf_source(source):
         duration_str = f"{hours:02}:{minutes:02}:{seconds:02}"
 
         # Set up the ffmpeg command
-        cmd = ['ffmpeg', '-y', '-i', url, '-t', duration_str, '-ac',
-               '1', '-sample_fmt', 's16', '-f', 'wav', output]
+        cmd = ['ffmpeg', '-y', '-i', url, '-t', duration_str, '-af', 'aresample=44.1k',
+               '-sample_fmt', 's16', '-ac', '1', '-f', 'wav', output]
 
         # Run the command
         result = run(cmd, stdout=DEVNULL, stderr=DEVNULL)

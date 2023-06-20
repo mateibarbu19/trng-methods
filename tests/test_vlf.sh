@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python3 src/main.py \
-    --source vlf/hosts=[1,44] \
+    --source vlf \
     --acquire \
     --plot_types spectrogram+spectrum+magnitude_distribution
 

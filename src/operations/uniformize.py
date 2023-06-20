@@ -45,8 +45,4 @@ class uniformize_spectrum(operation):
         whitened_data = np.real(irfft(whitened_spectrum))
 
         # Normalize and scale the transformed data to the range of 16-bit signed integers
-        max_val = np.iinfo(np.int16).max
-        whitened_data = np.int16(
-            whitened_data / np.max(np.abs(whitened_data)) * max_val)
-
-        return whitened_data
+        return operation.normalize_and_scale(whitened_data)
