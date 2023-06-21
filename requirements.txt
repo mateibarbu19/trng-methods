@@ -11,6 +11,3 @@ numpy
 matplotlib
 librosa
 seaborn
-
-# Audio related packages
-pydub

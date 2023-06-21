@@ -2,7 +2,6 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 from os.path import join
-from pathlib import Path
 
 from functools import reduce
 import operator
@@ -13,18 +12,17 @@ from entropy_sources.fm import fm_source
 
 # Operations
 from operations.operation import operation
-from operations.uniformize import uniformize_signal
-from operations.uniformize import uniformize_spectrum
-from operations.filter import filter_spectrum_average
-from operations.filter import filter_spectrum_gaussian
-from operations.filter import filter_spectrum_median
-from operations.filter import filter_spectrum_notch
-from operations.outlier import winsorize_spectrum
+from operations.uniformize import *
+from operations.filter import *
+from operations.outlier import *
+from operations.miscellaneous import *
 
 # Plots
 from plots import plot_type
 
 DEFAULT_DURATION = 5
+DEFAULT_SAMPLE_RATE = 44100
+
 DEFAULT_AUDIO_DIR = 'audio'
 DEFAULT_EVAL_DIR = 'out'
 DEFAULT_SOURCE_DIR = 'sources'
@@ -36,12 +34,17 @@ supported_sources = {
 
 supported_operations = {
     'uniformize_signal': uniformize_signal,
-    'uniformize_spectrum': uniformize_spectrum,
+    'uniformize_spectrum_mean': uniformize_spectrum_mean,
+    'uniformize_spectrum_median': uniformize_spectrum_median,
     'filter_spectrum_average': filter_spectrum_average,
     'filter_spectrum_gaussian': filter_spectrum_gaussian,
     'filter_spectrum_median': filter_spectrum_median,
     'filter_spectrum_notch': filter_spectrum_notch,
     'winsorize_spectrum': winsorize_spectrum,
+    'winsorize_signal': winsorize_signal,
+    'autocorrelate_signal': autocorrelate_signal,
+    'autocorrelate_spectrum': autocorrelate_spectrum,
+    'expand_band': expand_band
 }
 
 
@@ -71,6 +74,7 @@ def get_value(value: str):
         values = value[1:-1].split(',')
         return list(map(get_value, values))
     elif value.startswith('(') and value.endswith(')'):
+        values = value[1:-1].split(',')
         return tuple(map(get_value, values))
     elif value.startswith('{') and value.endswith('}'):
         raise NotImplementedError
@@ -80,7 +84,10 @@ def get_value(value: str):
 
 def make_source(args):
     # Set the basic kwargs for the source
-    kwargs = {}
+    kwargs = {
+        'sample_rate': args.acquire_sample_rate,
+        'block_size': args.block_size
+    }
 
     # Parse the source description
     name, *tweaks = args.source.split('/')
@@ -122,7 +129,8 @@ def make_operations(args, source) -> list[operation]:
     # Set the basic kwargs for the operations
     kwargs = {
         'audio_dir': source.source_dir,
-        'block_size': args.block_size
+        'block_size': args.block_size,
+        'sample_rate': source.sample_rate
     }
 
     # Create the list operations
@@ -178,6 +186,9 @@ def compute(args):
     if (args.operations is None):
         return
 
+    # Verify if all the sources are in the same format
+    source.check()
+
     # Extract the operations that need to be applied
     operations = make_operations(args, source)
 
@@ -200,6 +211,9 @@ def add_arguments(parser: argparse.ArgumentParser):
 
     parser.add_argument('--acquire', action='store_true',
                         help='acquire the data from the source')
+
+    parser.add_argument('--acquire_sample_rate', action='store', default=DEFAULT_SAMPLE_RATE, type=int,
+                        help='the sampling rate at which to save the acquired data')
 
     parser.add_argument('--duration', action='store', default=DEFAULT_DURATION, type=int,
                         help='the acquisition data aproximate duration in seconds, ' +

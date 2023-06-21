@@ -1,12 +1,17 @@
 from operations.operation import operation
+from abc import abstractmethod
 
 import numpy as np
-from scipy.stats import rankdata
+from scipy.stats import rankdata, mode
 from scipy.fft import rfft, irfft
 
 
 class uniformize_signal(operation):
     def __init__(self, method='ordinal', **kwargs):
+        # Set the block size to 64 KiB
+        # This was the best value
+        kwargs['block_size'] = 65536
+
         super().__init__(**kwargs)
         self.method = method
 
@@ -31,14 +36,17 @@ class uniformize_spectrum(operation):
         # Compute the Fourier transform
         spectrum = rfft(data)
 
-        # Compute the magnitude of the spectrum
-        magnitude = np.abs(spectrum)
+        # Compute the magnitudes of the spectrum
+        magnitudes = np.abs(spectrum)
 
-        # Compute the mean magnitude
-        mean_magnitude = np.mean(magnitude)
+        # Compute the yardstick
+        yardstick = self.get_yardstick(magnitudes)
+
+        # Replace the zero values with one to avoid division by zero
+        magnitudes[magnitudes == 0] = 1
 
         # Compute the whitened spectrum
-        whitened_spectrum = (spectrum / magnitude) * mean_magnitude
+        whitened_spectrum = (spectrum / magnitudes) * yardstick
 
         # Return the inverse Fourier transform of the whitened spectrum
         # We use np.real to discard the imaginary part which occurs due to numerical errors
@@ -46,3 +54,17 @@ class uniformize_spectrum(operation):
 
         # Normalize and scale the transformed data to the range of 16-bit signed integers
         return operation.normalize_and_scale(whitened_data)
+
+    @abstractmethod
+    def get_yardstick(self, magnitudes):
+        pass
+
+
+class uniformize_spectrum_mean(uniformize_spectrum):
+    def get_yardstick(self, magnitudes):
+        return np.mean(magnitudes)
+
+
+class uniformize_spectrum_median(uniformize_spectrum):
+    def get_yardstick(self, magnitudes):
+        return np.median(magnitudes)

@@ -2,7 +2,7 @@ from entropy_sources.source import source
 
 from subprocess import run, Popen, PIPE, DEVNULL
 
-import os
+from os.path import join
 
 DEFAULT_FREQUENCYS = ['101.9M', '102.8M']
 
@@ -21,24 +21,23 @@ class fm_source(source):
         for freq in self.freqs:
             self.fm_record(freq, str(duration))
 
-        self.trim()
-
     def fm_record(self, freq, duration):
         # Set up the rtl_fm command to demodulate FM radio
-        rtl_fm_cmd = ['rtl_fm', '-M', 'fm', '-s', '176.4k', '-r', '44.1k',
-                      '-A', 'lut', '-g', self.gain, '-p', self.ppm, '-f', freq]
+        rtl_fm_cmd = ['rtl_fm', '-M', 'fm', '-s', '176.4k', '-r',
+                      f'{self.sample_rate}', '-A', 'lut', '-g', self.gain,
+                      '-p', self.ppm, '-f', freq]
 
         # Run the command and pipe the output to a file
         radio = Popen(rtl_fm_cmd, stdout=PIPE, stderr=DEVNULL)
 
         # Create the base directory for the acquisitions
-        audio_file = os.path.join(self.source_dir, f'{freq}.wav')
+        audio_file = join(self.source_dir, f'{freq}.wav')
 
         # Set up the rtl_fm command to match the sampling rate with the resampling
         # rate of the radio output and to use a single channel
         # Also trim the time
-        sox_cmd = ['sox', '-t', 'raw', '-r', '44.1k', '-es', '-b', '16', '-c',
-                   '1', '-V0', '-', audio_file, 'trim', '0', duration]
+        sox_cmd = ['sox', '-t', 'raw', '-r', f'{self.sample_rate}', '-es',
+                   '-b', '16', '-c', '1', '-V0', '-', audio_file, 'trim', '0', duration]
 
         # Run the command and set the input to the last pipe
         record = run(sox_cmd, stdin=radio.stdout, stderr=DEVNULL)

@@ -1,6 +1,7 @@
 from enum import Flag, auto
 
-import os
+from os.path import join
+from os import listdir, makedirs
 from pathlib import Path
 
 # Wav files
@@ -10,10 +11,9 @@ from scipy.io import wavfile
 # Maths
 import numpy as np
 from scipy.signal import spectrogram
-from scipy.fftpack import rfft, rfftfreq
+from scipy.fft import rfft, rfftfreq
 
 # Plots and images
-from matplotlib import style
 import matplotlib.pyplot as plt
 import seaborn
 
@@ -46,51 +46,51 @@ class plot_type(Flag):
             return
 
         # Iterate through all wav files in the directory
-        for file in os.listdir(audio_dir):
+        for file in listdir(audio_dir):
             # skip if it isn't a wav file
             if not file.endswith(".wav"):
                 continue
 
             name = Path(file).stem
-            file = os.path.join(audio_dir, file)
+            file = join(audio_dir, file)
 
             # Set the base directory for the results of a file
-            base = os.path.join(eval_dir, name)
-            os.makedirs(base, exist_ok=True)
+            base = join(eval_dir, name)
+            makedirs(base, exist_ok=True)
 
             if self & plot_type.WAVE:
                 # Plot the wave
-                img = os.path.join(base, f'wave.png')
+                img = join(base, f'wave.png')
                 plot_waves([file], img)
 
             if self & plot_type.DISTRIBUTION:
                 # Plot the distribution
-                img = os.path.join(base, f'distribution.png')
+                img = join(base, f'distribution.png')
                 plot_distribution(file, img)
 
             if self & plot_type.SPECTROGRAM:
                 # Plot the spectrogram
-                img = os.path.join(base, f'spectrogram.png')
+                img = join(base, f'spectrogram.png')
                 plot_spectrogram(file, img)
 
             if self & plot_type.SPECTRUM:
                 # Plot the spectrum
-                img = os.path.join(base, f'spectrum.png')
+                img = join(base, f'spectrum.png')
                 plot_spectrum(file, img)
 
             if self & plot_type.MAGNITUDE_DISTRIBUTION:
                 # Plot the magnitude distribution
-                img = os.path.join(base, f'magnitude_distribution.png')
+                img = join(base, f'magnitude_distribution.png')
                 plot_magnitude_distribution(file, img)
 
             if self & plot_type.PHASE_DISTRIBUTION:
                 # Plot the phase distribution
-                img = os.path.join(base, f'phase_distribution.png')
+                img = join(base, f'phase_distribution.png')
                 plot_phase_distribution(file, img)
 
             if self & plot_type.BITMAP:
                 # Plot the bitmap
-                img = os.path.join(base, f'bitmap.png')
+                img = join(base, f'bitmap.png')
                 audio_to_bitmap(file, img)
 
 
@@ -98,13 +98,16 @@ def plot_waves(audio_files, output, title=None, labels=None):
     # Create a new figure with a decently large size (in inches)
     plt.figure(figsize=(12, 6))
 
+    nr_audios = len(audio_files)
+    nr_colors = len(color_list)
+
     # Check if more files than colors available
-    assert len(audio_files) > len(color_list), f'Please add more colors. ' + \
-        f'Number of files({len(audio_files)}) exceeds number of colors({len(color_list)}).'
+    assert nr_audios <= nr_colors, f'Please add more colors. ' + \
+        f'Number of files({nr_audios}) exceeds number of colors({nr_colors}).'
 
     # Assert that labels and audio_files have the same length
-    assert labels is None or len(audio_files) == len(
-        labels), "The number of labels must be the same as the number of audio files."
+    assert labels is None or nr_audios == len(labels), \
+        "The number of labels must be the same as the number of audio files."
 
     # Load and plot each file
     for i, filename in enumerate(audio_files):
@@ -220,26 +223,28 @@ def plot_spectrogram(audio_file, output, title=None):
     plt.close()
 
 
-def plot_spectrum(audio_file, output):
+def plot_spectrum(audio_file, output, title=None):
     # Read the wav file
     sample_rate, data = wavfile.read(audio_file)
 
     # Take the Fourier transform
     spectrum = rfft(data)
-
-    indices = np.where(np.abs(spectrum) > 1e7)
+    magnitudes = np.abs(spectrum)
 
     # Calculate the frequencies for the spectrum
-    freq = rfftfreq(len(spectrum), 1/sample_rate)
+    freq = rfftfreq(data.size, 1./sample_rate)
 
     # Create a new figure with a decently large size (in inches)
     plt.figure(figsize=(10, 6))
 
     # Plot the spectrum
-    plt.plot(freq, np.abs(spectrum))
+    plt.plot(freq, magnitudes, color='xkcd:azure')
+
+    if title is None:
+        title = 'Spectrum of ' + audio_file + ' file'
 
     # Label the axes and provide a title
-    plt.title('Spectrum of the Signal', fontsize=16)
+    plt.title(title, fontsize=16)
     plt.xlabel('Frequency (Hz)', fontsize=14)
     plt.ylabel('Magnitude', fontsize=14)
     plt.grid(True)
@@ -253,7 +258,7 @@ def plot_spectrum(audio_file, output):
     plt.close()
 
 
-def plot_magnitude_distribution(audio_file, output):
+def plot_magnitude_distribution(audio_file, output, title=None):
     # Read the wav file
     _, data = wavfile.read(audio_file)
 
@@ -270,8 +275,11 @@ def plot_magnitude_distribution(audio_file, output):
     ax.lines[0].set_color('xkcd:pumpkin orange')
     ax.lines[0].set_linewidth(2)
 
+    if title is None:
+        title = 'Distribution of Magnitudes in ' + audio_file + ' file'
+
     # Label the axes and provide a title
-    plt.title('Distribution of Magnitudes in Spectrum', fontsize=16)
+    plt.title(title, fontsize=16)
     plt.xlabel('Magnitude', fontsize=14)
     plt.ylabel('Density', fontsize=14)
     plt.grid(True)
@@ -285,7 +293,7 @@ def plot_magnitude_distribution(audio_file, output):
     plt.close()
 
 
-def plot_phase_distribution(audio_file, output):
+def plot_phase_distribution(audio_file, output, title=None):
     # Read the wav file
     _, data = wavfile.read(audio_file)
 
@@ -302,8 +310,11 @@ def plot_phase_distribution(audio_file, output):
     ax.lines[0].set_color('xkcd:pumpkin orange')
     ax.lines[0].set_linewidth(2)
 
+    if title is None:
+        title = 'Distribution of Phases in ' + audio_file + ' file'
+
     # Label the axes and provide a title
-    plt.title('Distribution of Phases in Spectrum', fontsize=16)
+    plt.title(title, fontsize=16)
     plt.xlabel('Phase (radians)', fontsize=14)
     plt.ylabel('Density', fontsize=14)
     plt.grid(True)

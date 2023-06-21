@@ -1,51 +1,68 @@
 from abc import ABC, abstractmethod
 
-import os
+from os.path import join
+from os import makedirs, listdir
 
-from pydub import AudioSegment
+from scipy.io import wavfile
 
 
 class source(ABC):
     # Use keyworded arguments to allow for more flexibility
-    def __init__(self, source_dir=None, eval_dir=None):
+    def __init__(self, source_dir=None, eval_dir=None,
+                 sample_rate=None, block_size=None):
         self.source_dir = source_dir
         self.eval_dir = eval_dir
+
+        self.sample_rate = sample_rate
+        self.block_size = block_size
 
     @abstractmethod
     def acquire(self, duration):
         # Create the base directory for the acquisitions
-        os.makedirs(self.source_dir, exist_ok=True)
+        makedirs(self.source_dir, exist_ok=True)
 
-    def trim(self):
-        # Trim all files to minimum duration
-        # Initialize minimum duration
-        min_duration = float('inf')
+    def check(self):
+        # Check that all the source files have the same size and sample rate
+        min_size = None
+        sample_rate = None
 
         # Get all files in the directory
-        files = os.listdir(self.source_dir)
+        files = listdir(self.source_dir)
 
         # Iterate through all wav files in the directory
         for file in files:
             if file.endswith(".wav"):
                 # Set the path
-                path = os.path.join(self.source_dir, file)
+                path = join(self.source_dir, file)
 
                 # Load audio file
-                audio = AudioSegment.from_wav(path)
+                sample_rate, data = wavfile.read(path)
 
-                # Update minimum duration
-                min_duration = min(min_duration, len(audio))
+                if self.sample_rate is None:
+                    self.sample_rate = sample_rate
+                else:
+                    assert self.sample_rate == sample_rate, "Sample rates do not match"
 
+                if min_size is None:
+                    min_size = data.size
+
+                # Update minimum size
+                min_size = min(min_size, data.size)
+
+        if self.block_size is not None:
+            min_size -= min_size % self.block_size
+
+        # Trim all files to minimum size
         for file in files:
             if file.endswith(".wav"):
                 # Set the path
-                path = os.path.join(self.source_dir, file)
+                path = join(self.source_dir, file)
 
                 # Load audio file
-                audio = AudioSegment.from_wav(path)
+                sample_rate, data = wavfile.read(path)
 
                 # Trim audio file
-                trimmed_audio = audio[:min_duration]
+                data = data[:min_size]
 
                 # Export trimmed audio file
-                trimmed_audio.export(path, format="wav")
+                wavfile.write(path, sample_rate, data)

@@ -1,23 +1,29 @@
 from abc import ABC, abstractmethod
 
-import os
+from os.path import join
+from os import makedirs, listdir
 
-import numpy as np
 import wave
 from scipy.io import wavfile
 
 from multiprocessing import Pool
 from itertools import combinations
 
+import numpy as np
+
 
 class operation(ABC):
     # Use keyworded arguments to allow for more flexibility
-    def __init__(self, audio_dir=None, product_dir=None, eval_dir=None, block_size=None, nr_inputs=1):
+    def __init__(self, audio_dir=None, product_dir=None, eval_dir=None,
+                 block_size=None, nr_inputs=1, sample_rate=None):
+
         self.audio_dir = audio_dir
         self.product_dir = product_dir
         self.eval_dir = eval_dir
+
         self.block_size = block_size
         self.nr_inputs = nr_inputs
+        self.sample_rate = sample_rate
 
     # This is the function that will be applied to each combination of blocks
     @abstractmethod
@@ -27,7 +33,7 @@ class operation(ABC):
     def execute(self):
         # Get all wav files in the directory
         wavs = list(filter(lambda f:
-                           f.endswith('.wav'), os.listdir(self.audio_dir)))
+                           f.endswith('.wav'), listdir(self.audio_dir)))
 
         # Sort the files
         wavs.sort()
@@ -35,13 +41,12 @@ class operation(ABC):
         # If wavs is not empty
         if len(wavs) != 0:
             # Create the product directory
-            os.makedirs(self.product_dir, exist_ok=True)
+            makedirs(self.product_dir, exist_ok=True)
 
         # Iterate through all wav files in the directory
         for tuple in list(combinations(wavs, self.nr_inputs)):
             # Get the full path of the input files
-            files = list(
-                map(lambda f: os.path.join(self.audio_dir, f), tuple))
+            files = list(map(lambda f: join(self.audio_dir, f), tuple))
 
             # Check that all files have the same sample rate and number of frames
             sample_rate, nframes = operation.check_wav_files(files)
@@ -65,8 +70,7 @@ class operation(ABC):
             transformed_data = np.concatenate(transformed_blocks)
 
             # Set the path of the product file
-            product_file = os.path.join(
-                self.product_dir, '-'.join(tuple))
+            product_file = join(self.product_dir, '-'.join(tuple))
 
             # Write the transformed data to a new WAV file
             wavfile.write(product_file, sample_rate, transformed_data)
@@ -112,3 +116,6 @@ class operation(ABC):
         scaled_data = res_type(normalized_data * max_val)
 
         return scaled_data
+
+    def get_fft_index(self, frequency):
+        return round(frequency * self.block_size / self.sample_rate)

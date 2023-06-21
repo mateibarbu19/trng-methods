@@ -1,6 +1,6 @@
 from entropy_sources.source import source
 
-import os
+from os.path import join
 from concurrent.futures import ThreadPoolExecutor
 from subprocess import run, DEVNULL
 
@@ -14,13 +14,15 @@ RECORDINGS_URL = 'http://abelian.org/vsa/vlf'
 LIVE_URL = 'http://abelian.org/vlf/'
 STREAMS_URL = 'http://5.9.106.210/vlf'
 
+DEFAULT_HOSTS = ['1', '15', '34', '35', '38', '41', '44']
+
 
 class vlf_source(source):
     def __init__(self, hosts=None, **kwargs):
         super().__init__(**kwargs)
 
         if hosts is None:
-            self.hosts = vlf_source.get_live_hosts(LIVE_URL, STREAMS_URL)
+            self.hosts = DEFAULT_HOSTS
         else:
             self.hosts = list(map(str, hosts))
 
@@ -30,11 +32,9 @@ class vlf_source(source):
         # Download audio clips from all URLs in parallel
         with ThreadPoolExecutor() as executor:
             for host in self.hosts:
-                audio_file = os.path.join(self.source_dir, f'{host}.wav')
+                audio_file = join(self.source_dir, f'{host}.wav')
                 executor.submit(self.record_live, STREAMS_URL +
                                 host, duration, audio_file)
-
-        self.trim()
 
     def get_live_hosts(live_url, streams_url):
         # Send a GET request
@@ -75,8 +75,9 @@ class vlf_source(source):
         duration_str = f"{hours:02}:{minutes:02}:{seconds:02}"
 
         # Set up the ffmpeg command
-        cmd = ['ffmpeg', '-y', '-i', url, '-t', duration_str, '-af', 'aresample=44.1k',
-               '-sample_fmt', 's16', '-ac', '1', '-f', 'wav', output]
+        cmd = ['ffmpeg', '-y', '-i', url, '-t', duration_str, '-af',
+               f'aresample={self.sample_rate}', '-sample_fmt', 's16',
+               '-ac', '1', '-f', 'wav', output]
 
         # Run the command
         result = run(cmd, stdout=DEVNULL, stderr=DEVNULL)
@@ -110,7 +111,7 @@ class vlf_source(source):
                     recordings_url + str(host_nr) + '/' + id + '.wav')
                 if response.status_code == 200:
                     # Open the file in write-binary mode and write the response content to it
-                    with open(os.path.join(self.source_dir, f'{host_nr}.wav'), 'wb') as file:
+                    with open(join(self.source_dir, f'{host_nr}.wav'), 'wb') as file:
                         file.write(response.content)
                     return True
                 else:

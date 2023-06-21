@@ -7,7 +7,7 @@ python3 src/main.py \
 
 python3 src/main.py \
     --source vlf \
-    --operations uniformize_spectrum+uniformize_signal \
+    --operations expand_band+uniformize_spectrum_median+uniformize_signal \
     --name test \
-    --block_size 65536 \
+    --block_size 64 \
     --plot_types spectrogram+spectrum+magnitude_distribution

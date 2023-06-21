@@ -1,6 +1,8 @@
 # Audio and results
 audio
+*.wav
 out
+*.png
 
 # Git related files
 .git

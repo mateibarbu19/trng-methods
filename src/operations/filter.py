@@ -7,6 +7,8 @@ from scipy.signal import iirnotch, lfilter
 from scipy.stats import norm
 from scipy.fft import rfft, irfft
 
+PILOT_FREQ = 19000
+
 
 class filter_spectrum_magnitudes(operation):
     @abstractmethod
@@ -49,7 +51,7 @@ class filter_spectrum_average(filter_spectrum_linear):
         assert window_size % 2 == 0, "Window size must be even"
 
         # Create a moving average kernel
-        moving_average_kernel = np.ones(self.window_size) / self.window_size
+        moving_average_kernel = np.ones(window_size) / window_size
 
         # Call the parent constructor
         kwargs['kernel'] = moving_average_kernel
@@ -87,11 +89,11 @@ class filter_spectrum_median(filter_spectrum_magnitudes):
 class filter_spectrum_notch(operation):
     # notch_freq is the frequency to be removed
     # Q is the quality factor - higher values mean a narrower stop-band
-    def __init__(self, notch_freq=19e3, Q=100, **kwargs):
+    def __init__(self, notch_freq=PILOT_FREQ, Q=100, **kwargs):
         super().__init__(**kwargs)
 
         # Numerator and denominator polynomials of the IIR filter
-        n, d = iirnotch(notch_freq, Q, 44.1e3)
+        n, d = iirnotch(notch_freq, Q, self.sample_rate)
 
         self.numerator = n
         self.denominator = d
