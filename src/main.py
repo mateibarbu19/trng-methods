@@ -9,6 +9,8 @@ import operator
 # Sources
 from entropy_sources.vlf import vlf_source
 from entropy_sources.fm import fm_source
+from entropy_sources.randomorg import randomorg_source
+from entropy_sources.osrandom import osrandom_source
 
 # Operations
 from operations.operation import operation
@@ -29,7 +31,9 @@ DEFAULT_SOURCE_DIR = 'sources'
 
 supported_sources = {
     'vlf': vlf_source,
-    'fm': fm_source
+    'fm': fm_source,
+    'randomorg': randomorg_source,
+    'osrandom': osrandom_source
 }
 
 supported_operations = {

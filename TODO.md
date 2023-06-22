@@ -6,11 +6,10 @@ Programming:
 - entropy from scipy.stats import entropy?
 - rng-test of WAV
 - NIST test of WAV
+- spectrogram colorbar values
 
 Methods:
 - correcting bias + correlation
-- resampling of ogg
-- fm record
 
 Miscellaneous:
 - extract most entropic data from low entropy file

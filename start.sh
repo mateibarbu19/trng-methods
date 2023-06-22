@@ -32,6 +32,7 @@ docker run                          \
     --name "$container_name"        \
     --hostname "$container_name"    \
     --device "$device"              \
+    --network host                  \
     --volume "$PWD:$workdir"        \
     --workdir "$workdir"            \
     -it                             \
