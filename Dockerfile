@@ -13,8 +13,7 @@ RUN apt-get update -y
 # Install system packages
 RUN apt-get install -y python3 python3-pip python3-venv \
         ffmpeg sox rtl-sdr curl \
-        rng-tools \
-        libbz2-dev libdivsufsort-dev build-essential
+        rng-tools ent
 
 # Create a new user with the username from the build argument
 RUN useradd -ms /bin/bash $username

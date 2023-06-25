@@ -11,6 +11,3 @@ numpy
 matplotlib
 librosa
 seaborn
-
-# NIST SP800-90B
-sp800-90b

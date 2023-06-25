@@ -41,5 +41,4 @@ class winsorize_spectrum(operation):
         # Inverse FFT
         adjusted_data = np.real(irfft(winsorized_spectrum))
 
-        # Normalize and scale the transformed data to the range of 16-bit signed integers
-        return operation.normalize_and_scale(adjusted_data)
+        return adjusted_data.astype(np.int16)

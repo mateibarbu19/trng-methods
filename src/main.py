@@ -19,8 +19,9 @@ from operations.filter import *
 from operations.outlier import *
 from operations.miscellaneous import *
 
-# Plots
+# Plots and tests
 from plots import plot_type
+from tests import test_type
 
 DEFAULT_DURATION = 5
 DEFAULT_SAMPLE_RATE = 44100
@@ -40,6 +41,7 @@ supported_operations = {
     'uniformize_signal': uniformize_signal,
     'uniformize_spectrum_mean': uniformize_spectrum_mean,
     'uniformize_spectrum_median': uniformize_spectrum_median,
+    'uniformize_spectrum_maximum': uniformize_spectrum_maximum,
     'filter_spectrum_average': filter_spectrum_average,
     'filter_spectrum_gaussian': filter_spectrum_gaussian,
     'filter_spectrum_median': filter_spectrum_median,
@@ -59,6 +61,15 @@ def make_plot_types(args) -> plot_type:
     plot_types = [getattr(plot_type, t.upper())
                   for t in args.plot_types.split('+')]
     return reduce(operator.or_, plot_types)
+
+
+def make_test_types(args) -> test_type:
+    # Split the test_types string into a list of strings
+    # Convert each string to the corresponding test_type
+    # Reduce the array of test_types to a single test_type
+    test_types = [getattr(test_type, t.upper())
+                  for t in args.test_types.split('+')]
+    return reduce(operator.or_, test_types)
 
 
 def get_value(value: str):
@@ -175,8 +186,9 @@ def make_operations(args, source) -> list[operation]:
 
 
 def compute(args):
-    # Extract what plots need to be shown
+    # Extract what evaluations need to be done
     plot_types = make_plot_types(args)
+    test_types = make_test_types(args)
 
     # Create the entropy source
     source = make_source(args)
@@ -185,6 +197,7 @@ def compute(args):
     if (args.acquire):
         source.acquire(args.duration)
         plot_types.execute(source.source_dir, source.eval_dir)
+        test_types.execute(source.source_dir, source.eval_dir)
 
     # Verify if there is a need to apply operations
     if (args.operations is None):
@@ -201,8 +214,9 @@ def compute(args):
         # Execute the operation
         op.execute()
 
-        # Plot the results
+        # Evaluate the results
         plot_types.execute(op.product_dir, op.eval_dir)
+        test_types.execute(op.product_dir, op.eval_dir)
 
 
 def add_arguments(parser: argparse.ArgumentParser):
@@ -230,7 +244,7 @@ def add_arguments(parser: argparse.ArgumentParser):
     available_operations = '\n\t'.join(available_operations)
     parser.add_argument('--operations', action='store', type=str,
                         help='a sequence of operations to be applied to the data\n' +
-                        'available operations which can be combined with can be combined with plus (+):\n\t' +
+                        'available operations which can be combined with plus (+):\n\t' +
                         available_operations)
 
     parser.add_argument('--name', action='store', type=str, default='',
@@ -244,9 +258,18 @@ def add_arguments(parser: argparse.ArgumentParser):
     available_plots = '\n\t'.join(available_plots)
     parser.add_argument('--plot_types', action='store', type=str,
                         default=plot_type.NONE.name.lower(),
-                        help='plot intermediate data' +
-                        '\navailable plots which can be combined with can be combined with plus (+):\n\t' +
+                        help='plot data' +
+                        '\navailable plots which can be combined with plus (+):\n\t' +
                         available_plots)
+
+    available_tests = map(lambda x: '- ' + x.lower(),
+                          test_type.__members__.keys())
+    available_tests = '\n\t'.join(available_tests)
+    parser.add_argument('--test_types', action='store', type=str,
+                        default=test_type.NONE.name.lower(),
+                        help='test data' +
+                        '\navailable tests which can be combined with plus (+):\n\t' +
+                        available_tests)
 
     parser.add_argument('--evaluation_dir', dest='eval_dir', action='store', type=str,
                         help='root directory to store the plots and tests')

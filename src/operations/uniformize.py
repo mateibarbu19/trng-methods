@@ -8,10 +8,6 @@ from scipy.fft import rfft, irfft
 
 class uniformize_signal(operation):
     def __init__(self, method='ordinal', **kwargs):
-        # Set the block size to 64 KiB
-        # This was the best value
-        kwargs['block_size'] = 65536
-
         super().__init__(**kwargs)
         self.method = method
 
@@ -52,8 +48,7 @@ class uniformize_spectrum(operation):
         # We use np.real to discard the imaginary part which occurs due to numerical errors
         whitened_data = np.real(irfft(whitened_spectrum))
 
-        # Normalize and scale the transformed data to the range of 16-bit signed integers
-        return operation.normalize_and_scale(whitened_data)
+        return whitened_data.astype(np.int16)
 
     @abstractmethod
     def get_yardstick(self, magnitudes):
@@ -68,3 +63,7 @@ class uniformize_spectrum_mean(uniformize_spectrum):
 class uniformize_spectrum_median(uniformize_spectrum):
     def get_yardstick(self, magnitudes):
         return np.median(magnitudes)
+
+class uniformize_spectrum_maximum(uniformize_spectrum):
+    def get_yardstick(self, magnitudes):
+        return np.max(magnitudes)
