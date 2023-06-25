@@ -10,7 +10,7 @@ from scipy.io import wavfile
 
 # Maths
 import numpy as np
-from scipy.signal import spectrogram
+from matplotlib.mlab import window_hanning
 from scipy.fft import rfft, rfftfreq
 
 # Plots and images
@@ -166,7 +166,7 @@ def plot_distribution(audio_file, output, description=None):
     # Label the axes and provide a title
     plt.title(description, fontsize=16)
     plt.xlabel("Amplitude", fontsize=14)
-    plt.ylabel("Frequency", fontsize=14)
+    plt.ylabel("Density", fontsize=14)
     plt.grid(True)
 
     # Use tight layout to optimize space
@@ -187,9 +187,6 @@ def plot_spectrogram(audio_file, output, title=None):
     raw_signal = file.readframes(-1)
     raw_signal = np.frombuffer(raw_signal, np.int16)
 
-    # Compute the spectrogram
-    spectrogram(raw_signal, file.getframerate())
-
     # Create a new figure with a decently large size (in inches)
     plt.figure(figsize=(10, 6))
 
@@ -201,7 +198,8 @@ def plot_spectrogram(audio_file, output, title=None):
     plt.rcParams['ytick.labelsize'] = 12
     plt.rcParams['figure.titlesize'] = 16
 
-    plt.specgram(raw_signal, NFFT=1024, Fs=file.getframerate(), cmap='viridis')
+    plt.specgram(raw_signal, NFFT=1024, Fs=file.getframerate(),
+                 window=window_hanning, scale='dB', cmap='viridis')
 
     if title is None:
         title = 'Spectrogram of ' + audio_file + ' file'
@@ -211,7 +209,7 @@ def plot_spectrogram(audio_file, output, title=None):
     plt.xlabel('Time (sec)')
     plt.ylabel('Frequency (Hz)')
 
-    plt.colorbar(label='Amplitude', orientation='vertical')
+    plt.colorbar(label='Amplitude (dB)', orientation='vertical')
 
     # Use tight layout to optimize space
     plt.tight_layout()
@@ -227,18 +225,12 @@ def plot_spectrum(audio_file, output, title=None):
     # Read the wav file
     sample_rate, data = wavfile.read(audio_file)
 
-    # Take the Fourier transform
-    spectrum = rfft(data)
-    magnitudes = np.abs(spectrum)
-
-    # Calculate the frequencies for the spectrum
-    freq = rfftfreq(data.size, 1./sample_rate)
-
     # Create a new figure with a decently large size (in inches)
     plt.figure(figsize=(10, 6))
 
-    # Plot the spectrum
-    plt.plot(freq, magnitudes, color='xkcd:azure')
+    # Calculate and plot the magnitude spectrum
+    plt.magnitude_spectrum(
+        data, Fs=sample_rate, color='xkcd:azure', window=window_hanning, scale='linear')
 
     if title is None:
         title = 'Spectrum of ' + audio_file + ' file'
@@ -262,8 +254,11 @@ def plot_magnitude_distribution(audio_file, output, title=None):
     # Read the wav file
     _, data = wavfile.read(audio_file)
 
+    # Apply a Hanning window to the data
+    windowed_data = window_hanning(data)
+
     # Take the Fourier transform
-    spectrum = rfft(data)
+    spectrum = rfft(windowed_data)
     magnitudes = np.abs(spectrum)
 
     # Create a new figure with a decently large size (in inches)
@@ -297,8 +292,11 @@ def plot_phase_distribution(audio_file, output, title=None):
     # Read the wav file
     _, data = wavfile.read(audio_file)
 
+    # Apply a Hanning window to the data
+    windowed_data = window_hanning(data)
+
     # Take the Fourier transform
-    spectrum = rfft(data)
+    spectrum = rfft(windowed_data)
     phases = np.angle(spectrum)
 
     # Create a new figure with a decently large size (in inches)

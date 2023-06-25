@@ -19,7 +19,7 @@ class winsorize_signal(operation):
 
 
 class winsorize_spectrum(operation):
-    def __init__(self, inf_prec=0, sup_prec=0.05, **kwargs):
+    def __init__(self, inf_prec=0, sup_prec=0.1, **kwargs):
         super().__init__(**kwargs)
 
         self.limits = [inf_prec, sup_prec]
