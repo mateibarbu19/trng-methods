@@ -24,7 +24,7 @@ from plots import plot_type
 from tests import test_type
 
 DEFAULT_DURATION = 5
-DEFAULT_SAMPLE_RATE = 44100
+DEFAULT_SAMPLE_RATE = 32000
 
 DEFAULT_AUDIO_DIR = 'audio'
 DEFAULT_EVAL_DIR = 'out'

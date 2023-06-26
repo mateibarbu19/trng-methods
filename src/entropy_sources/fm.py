@@ -4,16 +4,18 @@ from subprocess import run, Popen, PIPE, DEVNULL
 
 from os.path import join
 
-DEFAULT_FREQUENCYS = ['101.9M', '102.8M']
+DEFAULT_FREQUENCYS = ['80M', '160M', '230M', '440M']
+BANDWIDTH = 200000
 
 
 class fm_source(source):
-    def __init__(self, freqs=DEFAULT_FREQUENCYS, gain='33.8', ppm='50', **kwargs):
+    def __init__(self, freqs=DEFAULT_FREQUENCYS, gain='33.8', ppm='50', bw=BANDWIDTH, **kwargs):
         super().__init__(**kwargs)
 
         self.freqs = freqs
         self.gain = gain
         self.ppm = ppm
+        self.bw = bw
 
     def acquire(self, duration):
         super().acquire(duration)
@@ -22,8 +24,11 @@ class fm_source(source):
             self.fm_record(freq, str(duration))
 
     def fm_record(self, freq, duration):
+        sr = (self.bw // self.sample_rate) * self.sample_rate
+        sr = str(sr)
+
         # Set up the rtl_fm command to demodulate FM radio
-        rtl_fm_cmd = ['rtl_fm', '-M', 'fm', '-s', '176.4k', '-r',
+        rtl_fm_cmd = ['rtl_fm', '-M', 'fm', '-s', sr, '-r',
                       f'{self.sample_rate}', '-A', 'lut', '-g', self.gain,
                       '-p', self.ppm, '-f', freq]
 
@@ -48,7 +53,6 @@ class fm_source(source):
 
         # Check for errors
         if radio.returncode != 0 or record.returncode != 0:
-            print(f"Radio exit code: {radio.stderr.decode('utf-8')}")
-            print(f"Recording exit code: {record.stderr.decode('utf-8')}")
+            print(f"Could not record. Radio return code {radio.returncode}.")
         else:
             print("Successful recording!")

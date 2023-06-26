@@ -17,7 +17,7 @@ class randomorg_source(source):
     def acquire(self, duration):
         super().acquire(duration)
 
-        total_num = duration * self.sample_rate * 2
+        total_num = duration * self.sample_rate
         data = np.array([], dtype=np.int16)
 
         while total_num > 0:
@@ -54,6 +54,9 @@ class randomorg_source(source):
 
         # Split the string into individual numbers
         str_list = str_string.split()
+
+        if not str_list[0].isnumeric():
+            return np.array([], dtype=np.int16)
 
         # Convert the list of strings to a list of integers
         int_list = [int(i) for i in str_list]
