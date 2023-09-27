@@ -4,7 +4,7 @@
 user=$(grep '^ARG username' Dockerfile | awk -F'[ =]' '{print $3}')
 
 # Set the working directory and name of the Docker container
-workdir="/home/$user/app"
+workdir="/home/$user/lab"
 image_name="trng"
 container_name="test_${image_name}"
 
