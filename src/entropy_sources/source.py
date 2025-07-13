@@ -21,7 +21,7 @@ class source(ABC):
         # Create the base directory for the acquisitions
         makedirs(self.source_dir, exist_ok=True)
 
-    def check(self):
+    def source_trim_to_same_length(self):
         # Check that all the source files have the same size and sample rate
         min_size = None
         sample_rate = None

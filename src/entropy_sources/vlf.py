@@ -9,11 +9,9 @@ import requests
 from bs4 import BeautifulSoup
 
 # URLs for VLF radio noise
-EVENTS_URL = 'http://abelian.org/vlf/events.php?stream=vlf'
-RECORDINGS_URL = 'http://abelian.org/vsa/vlf'
-LIVE_URL = 'http://abelian.org/vlf/'
-STREAMS_URL = 'http://5.9.106.210/vlf'
+STREAMS_URL = 'http://abelian.org/vlf/live-stream.php?stream=vlf'
 
+# These hosts were active on abelian.org on June 2023
 DEFAULT_HOSTS = ['1', '15', '34', '35', '38', '41', '44']
 
 
@@ -56,7 +54,7 @@ class vlf_source(source):
 
             if matches.count == 0:
                 # If not found, print a message
-                print(f'The pattern was not found in the HTML content.')
+                print('The pattern was not found in the HTML content.')
                 return []
 
             return matches
@@ -119,7 +117,7 @@ class vlf_source(source):
                     return False
             else:
                 # If not found, print a message
-                print(f'The pattern was not found in the HTML content.')
+                print('The pattern was not found in the HTML content.')
                 return False
         else:
             print('An error occurred while trying to fetch the webpage.')

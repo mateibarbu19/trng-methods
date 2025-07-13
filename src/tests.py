@@ -13,7 +13,7 @@ from scipy.io import wavfile
 class test_type(Flag):
     NONE = auto()
     ENT = auto()
-    FIPS = auto()
+    RNGTOOLS = auto()
 
     def execute(self, audio_dir, eval_dir):
         # Skip if no tests are requested
@@ -35,12 +35,12 @@ class test_type(Flag):
                 makedirs(base, exist_ok=True)
 
                 if self & test_type.ENT:
-                    test = join(base, f'ent.txt')
+                    test = join(base, 'ent.txt')
                     executor.submit(test_ent, file, test)
 
-                if self & test_type.FIPS:
-                    test = join(base, f'fips.txt')
-                    executor.submit(test_fips, file, test)
+                if self & test_type.RNGTOOLS:
+                    test = join(base, 'rngtools.txt')
+                    executor.submit(test_rngtools, file, test)
 
 def test_ent(audio_file, output):
     # Read the audio file
@@ -52,7 +52,7 @@ def test_ent(audio_file, output):
             proc.stdin.write(data.tobytes())
 
 
-def test_fips(audio_file, output):
+def test_rngtools(audio_file, output):
     # Read the audio file
     _, data = wavfile.read(audio_file)
 
