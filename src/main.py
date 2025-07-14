@@ -24,6 +24,7 @@ from operations.miscellaneous import (
     autocorrelate_signal,
     autocorrelate_spectrum,
     expand_band,
+    von_neumann
 )
 from operations.operation import operation
 from operations.outlier import winsorize_spectrum, winsorize_signal
@@ -68,6 +69,7 @@ supported_operations = {
     "autocorrelate_signal": autocorrelate_signal,
     "autocorrelate_spectrum": autocorrelate_spectrum,
     "expand_band": expand_band,
+    "von_neumann": von_neumann,
 }
 
 
