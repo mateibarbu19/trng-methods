@@ -4,19 +4,28 @@ from os.path import join
 from os import makedirs, listdir
 
 import wave
-from scipy.io import wavfile
 
 from multiprocessing import Pool
 from itertools import combinations
 
 import numpy as np
+from utils.lazy import lazy_wav_blocks
+
+BUFFER_SIZE_MB = 100
+BUFFER_SIZE_BYTES = BUFFER_SIZE_MB * 1024 * 1024
 
 
 class operation(ABC):
     # Use keyworded arguments to allow for more flexibility
-    def __init__(self, audio_dir=None, product_dir=None, eval_dir=None,
-                 block_size=None, nr_inputs=1, sample_rate=None):
-
+    def __init__(
+        self,
+        audio_dir=None,
+        product_dir=None,
+        eval_dir=None,
+        block_size=None,
+        nr_inputs=1,
+        sample_rate=None,
+    ):
         self.audio_dir = audio_dir
         self.product_dir = product_dir
         self.eval_dir = eval_dir
@@ -30,58 +39,83 @@ class operation(ABC):
     def blocks_func(self, **args):
         pass
 
+    def blocks_func_tuple(self, args):
+        return self.blocks_func(*args)
+
     def execute(self):
         # Get all wav files in the directory
-        wavs = list(filter(lambda f:
-                           f.endswith('.wav'), listdir(self.audio_dir)))
+        wavs = list(filter(lambda f: f.endswith(".wav"), listdir(self.audio_dir)))
 
         # Sort the files
         wavs.sort()
 
-        # If wavs is not empty
-        if len(wavs) != 0:
-            # Create the product directory
-            makedirs(self.product_dir, exist_ok=True)
+        # If wavs is empty
+        if len(wavs) == 0:
+            # Exit early
+            return
+
+        # Create the product directory
+        makedirs(self.product_dir, exist_ok=True)
 
         # Iterate through all wav files in the directory
-        for tuple in list(combinations(wavs, self.nr_inputs)):
+        for t in list(combinations(wavs, self.nr_inputs)):
             # Get the full path of the input files
-            files = list(map(lambda f: join(self.audio_dir, f), tuple))
+            files = list(map(lambda f: join(self.audio_dir, f), t))
 
             # Check that all files have the same sample rate and number of frames
-            sample_rate, nframes = operation.check_wav_files(files)
-            flag = sample_rate is not None and nframes is not None
-            assert flag, 'All inputs must have the same sample rate and duration'
+            sample_rate, nframes, nchannels, sampwidth = operation.check_wav_files(
+                files
+            )
+            flag = (
+                sample_rate is not None
+                and nframes is not None
+                and nchannels is not None
+                and sampwidth is not None
+            )
+            assert flag, "All inputs must have the same format"
 
             # Block size edge case
             if self.block_size is None or self.block_size > nframes:
                 self.block_size = nframes
 
-            # Aggregate the blocks from each file
-            blocks_list = map(lambda f: self.get_blocks(f), files)
+            # Evaluate blocks as needed
+            lazy_wavs = map(lambda f: lazy_wav_blocks(f, self.block_size), files)
 
-            # "Transpose" the blocks
-            blocks_arg = list(zip(*blocks_list))
+            # Zip to get block tuples (lazily)
+            block_tuples = zip(*lazy_wavs)
 
-            with Pool() as pool:
-                transformed_blocks = pool.starmap(self.blocks_func, blocks_arg)
+            # Output WAV file path
+            product_file = join(self.product_dir, "-".join(t))
 
-            # Concatenate all blocks back into one array
-            transformed_data = np.concatenate(transformed_blocks)
+            buffer = bytearray()
 
-            # Set the path of the product file
-            product_file = join(self.product_dir, '-'.join(tuple))
+            # Open wave file for writing
+            with wave.open(product_file, "wb") as wf:
+                wf.setnchannels(nchannels)
+                wf.setsampwidth(sampwidth)
+                wf.setframerate(sample_rate)
 
-            # Write the transformed data to a new WAV file
-            wavfile.write(product_file, sample_rate, transformed_data)
+                # Process in parallel, lazily
+                with Pool() as pool:
+                    for block in pool.imap(self.blocks_func_tuple, block_tuples, chunksize=100):
+                        buffer.extend(block.tobytes())
+
+                        # If buffer exceeds threshold, write to file
+                        if len(buffer) >= BUFFER_SIZE_BYTES:
+                            wf.writeframes(buffer)
+                            buffer.clear()
+
+                    wf.writeframes(buffer)
 
     def check_wav_files(files):
         # Sample rate and number of frames of the first file
         sample_rate = None
         nframes = None
+        nchannels = None
+        sampwidth = None
 
         for file in files:
-            with wave.open(file, 'rb') as audio_file:
+            with wave.open(file, "rb") as audio_file:
                 if sample_rate is None:
                     sample_rate = audio_file.getframerate()
                 elif sample_rate != audio_file.getframerate():
@@ -94,20 +128,26 @@ class operation(ABC):
                     # Number of frames do not match
                     return None, None
 
-        # All files have the same sample rate and number of frames
-        return sample_rate, nframes
+                if nchannels is None:
+                    nchannels = audio_file.getnchannels()
+                elif nchannels != audio_file.getnchannels():
+                    # Number of channels do not match
+                    return None, None
 
-    def get_blocks(self, file):
-        # Read the WAV file
-        _, data = wavfile.read(file)
+                if sampwidth is None:
+                    sampwidth = audio_file.getsampwidth()
+                elif sampwidth != audio_file.getsampwidth():
+                    # Data sizes do not match
+                    return None, None
 
-        # Break data into blocks
-        blocks = [data[i:i+self.block_size]
-                  for i in range(0, len(data), self.block_size)]
-
-        return blocks
+        # Return all info
+        return sample_rate, nframes, nchannels, sampwidth
 
     def normalize_and_scale(data, res_type=np.int16):
+        local_max = np.max(np.abs(data))
+        if local_max == 0:
+            return data
+
         # Normalize the data
         normalized_data = data / np.max(np.abs(data))
 
