@@ -34,7 +34,7 @@ TESTS_FORMAT='''Tests must be in one of the following format:
     
 Examples:
     - ent
-    - [ent, rngtools]
+    - [ent, rngtest]
 '''
 
 BANNER=f'''Command-line tool for prototyping TRNGs.
@@ -65,7 +65,7 @@ python3 {sys.argv[0]}                                                           
     --operations "[uniformize_spectrum_median(block_size=64), winsorize_spectrum, uniformize_signal]" \\
     --evaluate_only_last_operation                                                                    \\
     --plots "[distribution, spectrum, spectrogram, magnitude_distribution, phase_distribution]"       \\
-    --tests "[ent, rngtools]"
+    --tests "[ent, rngtest]"
 
 All options:
 '''
