@@ -9,7 +9,7 @@ image_name="trng"
 container_name="test_${image_name}"
 
 # Build the Docker image
-docker build -t "$image_name" .
+docker build --format docker -t "$image_name" .
 
 # If the build failed, exit with an error
 if [ $? -ne 0 ]; then
@@ -28,6 +28,7 @@ fi
 
 # Run the Docker in detached mode
 docker run                          \
+    --userns keep-id:uid=1000,gid=1000 \
     --detach                        \
     --name "$container_name"        \
     --hostname "$container_name"    \
