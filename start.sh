@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Use default user in the Dockerfile
 user=$(grep '^ARG username' Dockerfile | awk -F'[ =]' '{print $3}')
