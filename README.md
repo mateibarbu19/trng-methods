@@ -1,7 +1,32 @@
 # True Random Number Generators - Methods
 
-This repository is a testbench for my bachelor's degree project. Do not regard
-it as anything more than a work in progess.
+This repository was a testbench for my bachelor's degree project.
+
+Since then, the proof of concept TRNG from VLF radio noise has been published in an
+[IEEE paper](https://ieeexplore.ieee.org/document/11208358).
+
+```
+@INPROCEEDINGS{11208358,
+  author={Barbu, Matei and Trancă, Dumitru-Cristian and Stancu, Florin-Alexandru},
+  booktitle={2025 24th RoEduNet Conference: Networking in Education and Research (RoEduNet)}, 
+  title={True Random Number Generation from Very Low Frequency Radio Noise}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-6},
+  keywords={Frequency modulation;Statistical analysis;Noise;Pipelines;White noise;Entropy;Standards;Random number generation;Stress;Testing;TRNG;VLF;FM;Radio Noise;FIPS 140–2},
+  doi={10.1109/RoEduNet68395.2025.11208358}}
+```
+
+## Current status
+
+**Unmaintained**. Decision justified for the following reasons:
+
+1. The main source site, <http://abelian.org>, has been down for a long time.
+2. Better testing infrastructure could be made over more performant clients.
+
+    Such as [KiwiClient](https://github.com/jks-prv/kiwiclient).
+3. The proof of concept paper has been published.
 
 ## Setup
 
